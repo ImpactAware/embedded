@@ -13,10 +13,9 @@ void broadcastReport();
 void waitingBlink();
 void readyBlink();
 void incrementCounter();
-void receivedCallback(uint32_t from, String &msg);
-void newConnectionCallback(uint32_t nodeId);
-void droppedConnectionCallback(uint32_t nodeId);
-void nodeTimeAdjustedCallback(int32_t offset);
+void newMessage(uint32_t from, String &msg);
+void newConnection(uint32_t nodeId);
+void droppedConnection(uint32_t nodeId);
 
 /* Global Variables */
 int triggers = 0;
@@ -27,8 +26,13 @@ Scheduler userScheduler;
 Task reportTask(TASK_SECOND * MESSAGE_DELAY, TASK_FOREVER, &broadcastReport);
 Task waitingBlinkTask(TASK_SECOND, TASK_FOREVER, &waitingBlink, &userScheduler, true, NULL, &readyBlink);
 
-void setup()
-{
+/* 
+    ---------
+    Main
+    ---------
+*/
+
+void setup() {
     Serial.begin(115200);
     pinMode(SENSOR_PIN, INPUT);
     pinMode(LED_PIN, OUTPUT);
@@ -41,36 +45,35 @@ void setup()
     sensorMesh.setDebugMsgTypes( ERROR | STARTUP );
     sensorMesh.init(SSID, PASS, &userScheduler, PORT);
 
-    sensorMesh.onReceive(&receivedCallback);
-    sensorMesh.onNewConnection(&newConnectionCallback);
-    sensorMesh.onDroppedConnection(&droppedConnectionCallback);
+    sensorMesh.onReceive(&newMessage);
+    sensorMesh.onNewConnection(&newConnection);
+    sensorMesh.onDroppedConnection(&droppedConnection);
 
     // Add reporting task
     userScheduler.addTask(reportTask);
     reportTask.enable();
 }
 
-void loop()
-{
+void loop() {
     sensorMesh.update();
 }
 
-/* Interrupt Handler */
-void incrementCounter()
-{
+/* 
+    ---------
+    Functions
+    ---------
+*/
+
+void incrementCounter() {
     triggers += 1;
 }
 
-void broadcastReport()
-{
-    if (triggers > 0)
-    {
+void broadcastReport() {
+    if (triggers > 0) {
         String msg = "VIBR ";
         msg += triggers;
-
         sensorMesh.sendBroadcast(msg, true);
     }
-
     triggers = 0;
 }
 
@@ -81,8 +84,7 @@ void waitingBlink() {
 
 // Connection established
 void readyBlink() {
-    for (char i = 0; i < 3; i++)
-    {
+    for (char i = 0; i < 3; i++) {
         digitalWrite(LED_PIN, HIGH);
         delay(100);
         digitalWrite(LED_PIN, LOW);
@@ -90,15 +92,15 @@ void readyBlink() {
     }
 }
 
-void receivedCallback(uint32_t from, String &msg)
-{
+// This function is called when a new message is recieved
+void newMessage(uint32_t from, String &msg) {
     if (msg.startsWith("VIBR")) {
         Serial.printf("%s %u\n", msg.c_str(), from);
     }
 }
 
-void newConnectionCallback(uint32_t nodeId)
-{
+// This function is called when a new node connects to the mesh
+void newConnection(uint32_t nodeId) {
     Serial.printf("CONN %u\n", nodeId);
 
     // Stop LED blinking
@@ -107,8 +109,8 @@ void newConnectionCallback(uint32_t nodeId)
     
 }
 
-void droppedConnectionCallback(uint32_t nodeId)
-{
+// This function is called when a node disconnects from the mesh
+void droppedConnection(uint32_t nodeId) {
     Serial.printf("DCON %u\n", nodeId);
 
     // Start LED blinking again if the last node disconnects
