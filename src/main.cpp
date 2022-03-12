@@ -1,32 +1,65 @@
+/* Dependencies */
 #include <Arduino.h>
 #include <painlessMesh.h>
 
+/* Definitions */
 #define MESSAGE_DELAY 1
-
 #define SSID "BombSensors"
 #define PASS "1amp0ilr0peb0mb5"
+#define PORT 5555
 
+/* Function Prototypes */
 void broadcastReport();
 void waitingBlink();
 void readyBlink();
 void incrementCounter();
-void recievedCallback(uint32_t from, String &msg);
+void receivedCallback(uint32_t from, String &msg);
 void newConnectionCallback(uint32_t nodeId);
 void droppedConnectionCallback(uint32_t nodeId);
 void nodeTimeAdjustedCallback(int32_t offset);
 
-painlessMesh sensorMesh;
-
-Scheduler userScheduler;
-
+/* Global Variables */
 int triggers = 0;
 
+/* Constructors */
+painlessMesh sensorMesh;
+Scheduler userScheduler;
+Task reportTask(TASK_SECOND * MESSAGE_DELAY, TASK_FOREVER, &broadcastReport);
+Task waitingBlinkTask(TASK_SECOND, TASK_FOREVER, &waitingBlink, &userScheduler, true, NULL, &readyBlink);
+
+void setup()
+{
+    Serial.begin(115200);
+    pinMode(SENSOR_PIN, INPUT);
+    pinMode(LED_PIN, OUTPUT);
+
+    // Increment counter upon sensor trigger
+    attachInterrupt(SENSOR_PIN, incrementCounter, RISING);
+
+    // Create mesh network for boards
+    // Set debug before init() so that you can see startup messages
+    sensorMesh.setDebugMsgTypes( ERROR | STARTUP );
+    sensorMesh.init(SSID, PASS, &userScheduler, PORT);
+
+    sensorMesh.onReceive(&receivedCallback);
+    sensorMesh.onNewConnection(&newConnectionCallback);
+    sensorMesh.onDroppedConnection(&droppedConnectionCallback);
+
+    // Add reporting task
+    userScheduler.addTask(reportTask);
+    reportTask.enable();
+}
+
+void loop()
+{
+    sensorMesh.update();
+}
+
+/* Interrupt Handler */
 void incrementCounter()
 {
     triggers += 1;
 }
-
-Task reportTask(TASK_SECOND * MESSAGE_DELAY, TASK_FOREVER, &broadcastReport);
 
 void broadcastReport()
 {
@@ -40,8 +73,6 @@ void broadcastReport()
 
     triggers = 0;
 }
-
-Task waitingBlinkTask(TASK_SECOND, TASK_FOREVER, &waitingBlink, &userScheduler, true, NULL, &readyBlink);
 
 // Waiting for connection to network
 void waitingBlink() {
@@ -84,37 +115,4 @@ void droppedConnectionCallback(uint32_t nodeId)
     if (sensorMesh.getNodeList().size() == 0)
         waitingBlinkTask.enable();
     
-}
-
-// void nodeTimeAdjustedCallback(int32_t offset)
-// {
-//     Serial.printf("Adjusted time %u. Offset = %d\n", sensorMesh.getNodeTime(), offset);
-// }
-
-void setup()
-{
-    Serial.begin(115200);
-    pinMode(SENSOR_PIN, INPUT);
-    pinMode(LED_PIN, OUTPUT);
-
-    // Increment counter upon sensor trigger
-    attachInterrupt(SENSOR_PIN, incrementCounter, RISING);
-
-    // Create mesh network for boards
-    sensorMesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
-    sensorMesh.init(SSID, PASS, &userScheduler, 5555);
-
-    sensorMesh.onReceive(&receivedCallback);
-    sensorMesh.onNewConnection(&newConnectionCallback);
-    sensorMesh.onDroppedConnection(&droppedConnectionCallback);
-    // sensorMesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
-
-    // Add reporting task
-    userScheduler.addTask(reportTask);
-    reportTask.enable();
-}
-
-void loop()
-{
-    sensorMesh.update();
 }
