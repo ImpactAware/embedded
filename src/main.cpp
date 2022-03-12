@@ -9,7 +9,7 @@
 #define PORT 5555
 
 /* Function Prototypes */
-void broadcastReport();
+void broadcastVIBR();
 void waitingBlink();
 void readyBlink();
 void incrementCounter();
@@ -23,7 +23,7 @@ int triggers = 0;
 /* Constructors */
 painlessMesh sensorMesh;
 Scheduler userScheduler;
-Task reportTask(TASK_SECOND * MESSAGE_DELAY, TASK_FOREVER, &broadcastReport);
+Task reportTask(TASK_SECOND * MESSAGE_DELAY, TASK_FOREVER, &broadcastVIBR);
 Task waitingBlinkTask(TASK_SECOND, TASK_FOREVER, &waitingBlink, &userScheduler, true, NULL, &readyBlink);
 
 /* 
@@ -68,13 +68,16 @@ void incrementCounter() {
     triggers += 1;
 }
 
-void broadcastReport() {
+void broadcastVIBR() {
     if (triggers > 0) {
         String msg = "VIBR ";
         msg += triggers;
         sensorMesh.sendBroadcast(msg, true);
     }
     triggers = 0;
+}
+
+void broadcastDROP() {
 }
 
 // Waiting for connection to network
@@ -112,6 +115,7 @@ void newConnection(uint32_t nodeId) {
 // This function is called when a node disconnects from the mesh
 void droppedConnection(uint32_t nodeId) {
     Serial.printf("DCON %u\n", nodeId);
+    //sensorMesh.sendBroadcast(msg, true);
 
     // Start LED blinking again if the last node disconnects
     if (sensorMesh.getNodeList().size() == 0)
