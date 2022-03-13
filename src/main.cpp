@@ -12,7 +12,7 @@
 void broadcastVIBR();
 void waitingBlink();
 void readyBlink();
-void incrementCounter();
+IRAM_ATTR void incrementCounter();
 void newMessage(uint32_t from, String &msg);
 void newConnection(uint32_t nodeId);
 void droppedConnection(uint32_t nodeId);
@@ -38,7 +38,7 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
 
     // Increment counter upon sensor trigger
-    attachInterrupt(SENSOR_PIN, incrementCounter, RISING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), incrementCounter, RISING);
 
     // Create mesh network for boards
     // Set debug before init() so that you can see startup messages
@@ -64,7 +64,7 @@ void loop() {
     ---------
 */
 
-void incrementCounter() {
+IRAM_ATTR void incrementCounter() {
     triggers += 1;
 }
 
