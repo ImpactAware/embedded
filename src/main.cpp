@@ -116,7 +116,7 @@ void newConnection(uint32_t nodeId) {
 
 // This function is called when a node disconnects from the mesh
 void droppedConnection(uint32_t nodeId) {
-    String msg = "DROP";
+    String msg = "DROP ";
     msg += nodeId;
     sensorMesh.sendBroadcast(msg, true);
 
