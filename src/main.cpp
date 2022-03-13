@@ -77,9 +77,6 @@ void broadcastVIBR() {
     triggers = 0;
 }
 
-void broadcastDROP() {
-}
-
 // Waiting for connection to network
 void waitingBlink() {
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
