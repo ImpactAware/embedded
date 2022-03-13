@@ -99,6 +99,8 @@ void readyBlink() {
 void newMessage(uint32_t from, String &msg) {
     if (msg.startsWith("VIBR")) {
         Serial.printf("%s %u\n", msg.c_str(), from);
+    } else if (msg.startsWith("DROP")) {
+        Serial.printf("%s %u\n", msg.c_str(), from);
     }
 }
 
@@ -114,8 +116,9 @@ void newConnection(uint32_t nodeId) {
 
 // This function is called when a node disconnects from the mesh
 void droppedConnection(uint32_t nodeId) {
-    Serial.printf("DCON %u\n", nodeId);
-    //sensorMesh.sendBroadcast(msg, true);
+    String msg = "DROP";
+    msg += nodeId;
+    sensorMesh.sendBroadcast(msg, true);
 
     // Start LED blinking again if the last node disconnects
     if (sensorMesh.getNodeList().size() == 0)
